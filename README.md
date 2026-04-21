@@ -1,252 +1,181 @@
 Marketing Ops Agent Supervisor
-=============================
 
-Overview
---------
+A supervised multi-route marketing operations system that classifies requests, routes them to the correct specialist worker, and returns structured execution plans, diagnostics, copy frameworks, campaign strategies, and research briefs from one operator console.
+by Hans Stewart  ·  hansstewart.dev
+Architecture  ·  Portfolio  ·  GitHub
 
-Marketing Ops Agent Supervisor is a two-part application that classifies a marketing or operations request, routes it to the correct specialist worker, and returns a structured response for review.
+What It Does
 
-The backend is a FastAPI service that handles request routing, worker execution, fallback behavior, and final response shaping.
+Classifies a business request into the correct specialist route and returns a structured result designed for review, approval, and operational follow-through.
+The system combines deterministic routing, route-specific workers, structured fallbacks, and a final review layer so the output is consistent even when a live language-model call is unavailable.
+The result is a practical supervised agent interface for marketing operations work rather than a one-shot chatbot response.
+Design pattern: deterministic routing plus specialist workers consistently produces clearer, safer outputs than a single undifferentiated prompt.
+Control model: high-risk operational requests are flagged for approval instead of being executed automatically.
+Use cases: CRM workflow planning, reporting diagnostics, copy generation, campaign planning, research briefs, and supervised business operations support.
 
-The frontend is a React and TypeScript application that lets a user enter business context, submit a request, inspect the route decision, review structured output, and view raw JSON for debugging.
+How It Uses Claude, Anthropic, LangSmith, LangChain, and LangGraph
 
-This project is built for supervised execution. It can recommend workflows, reporting diagnostics, campaign plans, copy frameworks, and research briefs, but it should not make risky live operational changes automatically.
+Claude via Anthropic
+The copy and campaign_strategy routes use Claude through the Anthropic API to generate structured JSON outputs for marketing copy and campaign planning. These routes are designed to attempt live model generation first and then gracefully fall back to deterministic structured frameworks if the model is unavailable, the model name is invalid, or the API call fails.
 
-Current routes
---------------
+Anthropic API
+The backend uses the Anthropic Python SDK to call Claude directly. The app sends a system prompt and user prompt, requests JSON-only output, validates the response against Pydantic models, and returns the validated result to the frontend. This keeps copy and campaign outputs structured and renderable inside the operator console.
 
-The supervisor supports these routes:
+LangSmith
+LangSmith is used for tracing and observability. Worker functions and the main supervisor run are decorated so route execution can be traced when a LangSmith API key is present. This makes it possible to inspect route selection, worker behavior, and run-level execution details during debugging and evaluation.
 
-crm_ops
-reporting
-copy
-campaign_strategy
-research
-clarify
-reject
+LangChain
+LangChain is part of the project stack and supports the broader architecture around model-driven business workflows. In this supervisor, the core live model path currently calls Anthropic directly for strict JSON handling, but the project environment includes LangChain so the system can be extended into richer prompt chains, reusable model abstractions, and tool-driven workflows as the product evolves.
 
-What each route does
---------------------
+LangGraph
+LangGraph is included as part of the orchestration stack for graph-based agent design and future expansion into more explicit stateful workflow routing. The current supervisor already behaves like a routed graph at the product level: intake, decisioning, specialist worker dispatch, review shaping, and frontend delivery. LangGraph support in the environment makes it straightforward to evolve this deterministic supervisor into a deeper state-machine or graph-executed multi-agent workflow.
 
-crm_ops
-Returns a structured workflow blueprint for CRM and automation tasks such as lead routing, lifecycle updates, assignment logic, notifications, and SLA checks.
+Backend Workflow
 
-reporting
-Returns a structured reporting or diagnostic framework for KPI analysis, funnel analysis, attribution review, and performance investigation.
+Step 1 — Request intake
+Input: Business request plus optional business context
+Receives a request through the API and accepts structured context such as company, industry, offer, target audience, tool stack, and workflow goal. Prepares the run state that the supervisor uses across the route selection and worker execution flow.
 
-copy
-Attempts to generate structured marketing copy through Anthropic. If the Anthropic call fails, the app falls back to a safe structured copy framework.
+Step 2 — Deterministic route classification
+Intermediate: Route decision object
+Evaluates the request against a route table and classifies it into one of seven routes: crm_ops, reporting, copy, campaign_strategy, research, clarify, or reject. Assigns confidence, risk level, missing inputs, and approval requirements before worker execution begins.
 
-campaign_strategy
-Attempts to generate a structured campaign plan through Anthropic. If the Anthropic call fails, the app falls back to a safe structured campaign framework.
+Step 3 — Specialist worker execution
+Processing: Route-specific structured generation
+Dispatches the request to the correct worker. CRM ops returns workflow blueprints and QA checklists. Reporting returns diagnostic frameworks and KPI investigation paths. Copy and campaign strategy attempt live Claude generation through Anthropic and fall back to structured frameworks when needed. Research returns positioning and market-analysis briefs. Clarify and reject keep the system safe when a request is ambiguous or operationally risky.
 
-research
-Returns a structured research brief covering market context, competitor framing, open questions, implications, and recommended next steps.
+Step 4 — Final review shaping
+Processing: Standardized response assembly
+Wraps the worker output into a consistent response shape with decision metadata, route used, next step guidance, and a deliverable payload. Keeps frontend rendering predictable regardless of which route was selected.
 
-clarify
-Returns clarifying questions when the request is too vague to route with confidence.
+Step 5 — Frontend delivery
+Output: Supervised agent result
+Displays the routing decision, confidence, risk status, approval state, structured output, and raw JSON trace inside a React operator console. Supports review, debugging, and presentation from a single UI.
 
-reject
-Rejects risky direct execution requests and offers a safer planning alternative.
+System Routes
 
-Project structure
------------------
+RoutePurpose
+crm_opsCRM workflow blueprints, routing logic, lifecycle-stage handling, SLA checks, notifications, and implementation planning
+reportingKPI analysis, funnel diagnostics, attribution review, performance troubleshooting, and investigation frameworks
+copyStructured copy outputs such as nurture sequences, outreach, landing page copy, and conversion messaging
+campaign_strategyGo-to-market planning, ICP definition, channel strategy, positioning, campaign sequencing, and success metrics
+researchMarket landscape, competitor framing, persona research, positioning analysis, and open-question briefs
+clarifyClarifying questions when the request is too vague to route safely
+rejectSafe refusal for risky direct execution requests such as live CRM changes or immediate sends
 
-marketing-ops-agent-supervisor/
-app-backend/
-app-frontend/
+Frontend Experience
 
-Backend summary
----------------
+The frontend provides a business-context form, request intake, scenario shortcuts, execution graph, route decision display, structured route output, and raw JSON inspection.
+The interface is designed for supervised operations work, not autonomous live execution.
+High-risk routes can surface approval requirements before operational follow-through.
+Fallback behavior for copy and campaign strategy is preserved so the product remains usable even when the live model is unavailable.
 
-The backend uses FastAPI and includes:
+Tech Stack
 
-A route_request function for deterministic classification
-Worker functions for each supported route
-Structured fallback behavior for copy and campaign strategy
-A review_result function that standardizes the final response shape
-A /run endpoint that accepts the request and business context
-A /health endpoint for quick health checks
+LayerTechnology
+LanguagePython 3.11
+Backend FrameworkFastAPI
+FrontendReact with TypeScript
+ServerUvicorn
+AI ModelClaude via Anthropic
+TracingLangSmith
+AI FrameworkLangChain
+Agent Graph LayerLangGraph
+DeploymentGoogle Cloud Run for backend, static frontend deployment for UI
+ArchitectureDeterministic router plus specialist workers
 
-Frontend summary
-----------------
+Local Development
 
-The frontend uses React and TypeScript and includes:
+Clone the repository:
 
-A request form
-Business context inputs
-Route badges and confidence display
-Structured route output rendering
-A decision trace view with raw JSON toggle
-A CRM-focused output view for crm_ops runs
-An approval state for high-risk routes
+git clone https://github.com/HansStewart/marketing-ops-agent-supervisor.git
+cd marketing-ops-agent-supervisor
 
-Request and response shape
---------------------------
-
-The frontend sends a POST request to /run with this general shape:
-
-{
-  "input": "Build a HubSpot workflow for inbound lead routing",
-  "business_context": {
-    "company_name": "Stewart Strategy Suite",
-    "industry": "Marketing automation / AI consulting",
-    "primary_offer": "AI implementation and marketing ops consulting",
-    "target_audience": "SMB founders and revenue teams",
-    "tool_stack": "HubSpot, FastAPI, React, LangChain",
-    "workflow_goal": "Improve lead routing and campaign execution"
-  }
-}
-
-The backend returns this general shape:
-
-{
-  "decision": {
-    "route": "crm_ops",
-    "confidence": 0.95,
-    "reason": "Request is about CRM, workflows, or automation.",
-    "missing_inputs": [],
-    "risk_level": "high",
-    "requires_human_approval": true
-  },
-  "result": {
-    "route_used": "crm_ops",
-    "deliverable": {},
-    "next_step": "Review the output and refine the request if you want a more specific deliverable.",
-    "max_steps": 6
-  }
-}
-
-Running locally
----------------
-
-Backend
-
-1. Open a terminal.
-2. Change into the backend folder.
-3. Activate the virtual environment if you are using one.
-4. Start the FastAPI app.
-
-Commands:
+Run the backend:
 
 cd app-backend
+pip install -r requirements.txt
 uvicorn main:app --reload
 
-Frontend
-
-1. Open a second terminal.
-2. Change into the frontend folder.
-3. Start the React development server.
-
-Commands:
+Run the frontend in a second terminal:
 
 cd app-frontend
+npm install
 npm start
 
 Local URLs
-----------
-
-Frontend:
-http://localhost:3000
-
-Backend health:
-http://127.0.0.1:8000/health
-
-Backend docs:
-http://127.0.0.1:8000/docs
-
-Environment variables
----------------------
-
-Recommended backend environment variables:
-
-ANTHROPIC_API_KEY
-ANTHROPIC_MODEL
-ANTHROPIC_TIMEOUT_SECONDS
-ANTHROPIC_MAX_RETRIES
-LANGSMITH_API_KEY
-
-Important note about Anthropic behavior
----------------------------------------
-
-The copy and campaign_strategy routes are designed to fall back gracefully if the Anthropic request fails. This means the app remains usable even if the API key is missing, the model name is unavailable, or the request fails for another reason.
-
-If a fallback is triggered, the UI should show a polished framework response without exposing a raw provider error message to the end user.
-
-Recommended test prompts
-------------------------
-
-reporting
-Reporting - analyze why booked calls dropped from paid search leads last month.
-
-crm_ops
-Build a HubSpot workflow for MQL to SQL handoff using round robin assignment with a fallback owner and 2-hour SLA check.
-
-copy
-Write a 5-email nurture sequence for inbound leads from paid search who did not book a call.
-
-campaign_strategy
-Create a go-to-market campaign plan for a new SMB offer targeting roofing contractors.
-
-research
-Research how the top 3 HubSpot competitors position their CRM automation for SMBs.
-
-clarify
-Help me improve marketing.
-
-reject
-Update HubSpot and send this email to all leads right now.
-
-Deployment approach
--------------------
-
-Recommended production deployment:
-
-Backend
-Deploy app-backend to Google Cloud Run as a containerized FastAPI service.
 
 Frontend
-Either deploy app-frontend separately as a static site, or build it and host it behind a simple static hosting setup.
+http://localhost:3000
 
-If you want a single public product link quickly, the simplest production path is:
+Backend health
+http://127.0.0.1:8000/health
 
-1. Deploy the backend to Cloud Run.
-2. Deploy the frontend to a static host.
-3. Point the frontend API base URL to the Cloud Run backend URL.
+Backend docs
+http://127.0.0.1:8000/docs
 
-GitHub workflow
----------------
+Environment Variables
 
-A simple Git workflow for this project:
+VariableRequiredPurpose
+ANTHROPIC_API_KEYOptional for fallback mode, required for live Claude generationAnthropic API access for copy and campaign routes
+ANTHROPIC_MODELRecommendedClaude model selection for copy and campaign routes
+ANTHROPIC_TIMEOUT_SECONDSOptionalRequest timeout control for Anthropic calls
+ANTHROPIC_MAX_RETRIESOptionalRetry count for Anthropic calls
+LANGSMITH_API_KEYOptionalTracing and observability for route runs
 
-git status
+Example Request Types
+
+CRM Ops
+Build a HubSpot workflow for MQL to SQL handoff using round robin assignment with a fallback owner and 2-hour SLA check.
+
+Reporting
+Analyze why booked calls dropped from paid search leads last month.
+
+Copy
+Write a 5-email nurture sequence for inbound leads from paid search who did not book a call.
+
+Campaign Strategy
+Create a go-to-market campaign plan for a new SMB offer targeting roofing contractors.
+
+Research
+Research how the top 3 HubSpot competitors position their CRM automation for SMBs.
+
+Deployment
+
+Recommended production deployment pattern:
+
+Backend
+Deploy app-backend to Google Cloud Run.
+
+Frontend
+Deploy app-frontend as a static frontend and point its API base URL to the Cloud Run backend URL.
+
+This keeps the backend scalable and the frontend simple to update.
+
+GitHub Workflow
+
 git add .
-git commit -m "Finish MVP wiring for marketing ops agent supervisor"
-git push origin master
+git commit -m "Finish MVP for marketing ops agent supervisor"
+git push origin main
 
-If your default branch is main instead of master, replace master with main.
+If the repository is brand new, create the empty GitHub repository first, then connect the local repo as origin and push.
 
-What finished looks like
-------------------------
+Why This Project Exists
 
-This MVP is considered complete when:
+Marketing and ops teams often need structured planning, diagnostics, and execution guidance, but most AI interfaces collapse everything into one generic answer.
+This project separates request types into specialist paths, preserves a consistent response contract, and keeps risky operations supervised rather than automatic.
+It is designed to function as an operator console for AI-assisted marketing operations work.
 
-The frontend loads without TypeScript errors
-The backend responds successfully on /health and /run
-Each route classifies correctly
-Each route renders the expected structured output
-High-risk routes show approval behavior
-Copy and campaign routes fall back gracefully when the LLM is unavailable
-The raw provider error is hidden from the end user interface
+Full Agent Ecosystem
 
-Next improvements
------------------
+AgentRepository
+Website Audit Agentgithub.com/HansStewart/website-audit-agent
+AI Content Pipelinegithub.com/HansStewart/ai-content-pipeline
+Voice-to-CRM Agentgithub.com/HansStewart/voice-to-crm
+Pipeline Intelligence Agentgithub.com/HansStewart/pipeline-intelligence-agent
+CRM Automation Agentgithub.com/HansStewart/crm-agent
+AI Data Agentgithub.com/HansStewart/ai-data-agent
+RAG Document Intelligencegithub.com/HansStewart/rag-agent
+AI Architecturehansstewart.github.io/ai-architecture
 
-Useful next upgrades after MVP:
-
-Split App.tsx into smaller components
-Add persistent run history
-Add authentication
-Add better route evaluation logging
-Add Cloud Run deployment files if not already present
-Add frontend environment configuration for production API URLs
+Hans Stewart  ·  Marketing Automation Engineer  ·  hansstewart.dev
