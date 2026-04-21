@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Marketing Ops Supervisor</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      margin: 0;
+      padding: 16px;
+      background: #f5f5f5;
+      color: #222;
+    }
+    h1 {
+      margin-bottom: 8px;
+    }
+    .container {
+      max-width: 960px;
+      margin: 0 auto;
+      background: #fff;
+      padding: 16px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
+    textarea {
+      width: 100%;
+      min-height: 120px;
+      font-family: inherit;
+      font-size: 14px;
+      padding: 8px;
+      border-radius: 4px;
+      border: 1px solid #ccc;
+      resize: vertical;
+    }
+    button {
+      margin-top: 8px;
+      padding: 8px 16px;
+      font-size: 14px;
+      border-radius: 4px;
+      border: none;
+      cursor: pointer;
+      background: #01696f;
+      color: #fff;
+    }
+    button:disabled {
+      opacity: 0.6;
+      cursor: default;
+    }
+    .status {
+      margin-top: 8px;
+      font-size: 13px;
+      color: #555;
+    }
+    pre {
+      background: #111;
+      color: #f5f5f5;
+      padding: 12px;
+      border-radius: 4px;
+      font-size: 12px;
+      overflow: auto;
+      max-height: 400px;
+    }
+    .section-title {
+      margin-top: 16px;
+      margin-bottom: 4px;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Marketing Ops Supervisor</h1>
+    <p>Describe what you want (CRM ops, reporting, copy, campaign strategy, or research):</p>
+    <textarea id="inputBox" placeholder="Example: Build a HubSpot workflow for MQL to SQL handoff using round robin..."></textarea>
+    <br />
+    <button id="runBtn">Run supervisor</button>
+    <div id="status" class="status"></div>
+
+    <div id="outputSection" style="display:none;">
+      <div class="section-title">Decision</div>
+      <pre id="decisionBox"></pre>
+
+      <div class="section-title">Deliverable</div>
+      <pre id="deliverableBox"></pre>
+    </div>
+  </div>
+
+  <script>
+    const btn = document.getElementById('runBtn');
+    const inputBox = document.getElementById('inputBox');
+    const statusEl = document.getElementById('status');
+    const decisionBox = document.getElementById('decisionBox');
+    const deliverableBox = document.getElementById('deliverableBox');
+    const outputSection = document.getElementById('outputSection');
+
+    async function callSupervisor(input) {
+      const res = await fetch('http://127.0.0.1:8000/run', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ input })
+      });
+      if (!res.ok) {
+        throw new Error('Request failed with status ' + res.status);
+      }
+      return await res.json();
+    }
+
+    btn.addEventListener('click', async () => {
+      const text = inputBox.value.trim();
+      if (!text) {
+        statusEl.textContent = 'Please enter a request first.';
+        return;
+      }
+      btn.disabled = true;
+      statusEl.textContent = 'Running...';
+      outputSection.style.display = 'none';
+      decisionBox.textContent = '';
+      deliverableBox.textContent = '';
+
+      try {
+        const data = await callSupervisor(text);
+        statusEl.textContent = 'Done.';
+        outputSection.style.display = 'block';
+        decisionBox.textContent = JSON.stringify(data.decision, null, 2);
+        deliverableBox.textContent = JSON.stringify(data.result.deliverable, null, 2);
+      } catch (err) {
+        statusEl.textContent = 'Error: ' + (err.message || String(err));
+      } finally {
+        btn.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>
