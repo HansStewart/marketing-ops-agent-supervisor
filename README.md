@@ -1,88 +1,175 @@
 Marketing Ops Agent Supervisor
 
-A supervised multi-route marketing operations system that classifies requests, routes them to the correct specialist worker, and returns structured execution plans, diagnostics, copy frameworks, campaign strategies, and research briefs from one operator console.
-by Hans Stewart  ·  hansstewart.dev
-Architecture  ·  Portfolio  ·  GitHub
+A supervised multi-route marketing operations system built on Claude, LangChain, LangGraph, and LangSmith that classifies requests, routes them to the correct specialist worker, and returns structured execution plans, diagnostics, copy frameworks, campaign strategies, and research briefs from one operator console.
+
+By Hans Stewart
+hansstewart.dev
+Portfolio: hansstewart.dev
+GitHub: github.com/HansStewart
+
+Live App:
+https://marketing-ops-agent-1075083906427.us-central1.run.app
+
+
 
 What It Does
 
-Classifies a business request into the correct specialist route and returns a structured result designed for review, approval, and operational follow-through.
-The system combines deterministic routing, route-specific workers, structured fallbacks, and a final review layer so the output is consistent even when a live language-model call is unavailable.
+Classifies a business request into the correct specialist route and returns a structured result designed for review, approval, and operational follow-through. The system combines deterministic routing, route-specific workers, structured fallbacks, and a final review layer so the output is consistent even when a live model call is unavailable.
+
 The result is a practical supervised agent interface for marketing operations work rather than a one-shot chatbot response.
-Design pattern: deterministic routing plus specialist workers consistently produces clearer, safer outputs than a single undifferentiated prompt.
-Control model: high-risk operational requests are flagged for approval instead of being executed automatically.
-Use cases: CRM workflow planning, reporting diagnostics, copy generation, campaign planning, research briefs, and supervised business operations support.
 
-How It Uses Claude, Anthropic, LangSmith, LangChain, and LangGraph
+Design pattern:
+Deterministic routing plus specialist workers consistently produces clearer, safer outputs than a single undifferentiated prompt.
 
-Claude via Anthropic
-The copy and campaign_strategy routes use Claude through the Anthropic API to generate structured JSON outputs for marketing copy and campaign planning. These routes are designed to attempt live model generation first and then gracefully fall back to deterministic structured frameworks if the model is unavailable, the model name is invalid, or the API call fails.
+Control model:
+High-risk operational requests are flagged for approval instead of being executed automatically.
 
-Anthropic API
-The backend uses the Anthropic Python SDK to call Claude directly. The app sends a system prompt and user prompt, requests JSON-only output, validates the response against Pydantic models, and returns the validated result to the frontend. This keeps copy and campaign outputs structured and renderable inside the operator console.
+Use cases:
+CRM workflow planning
+Reporting diagnostics
+Copy generation
+Campaign planning
+Research briefs
+Supervised business operations support
 
-LangSmith
-LangSmith is used for tracing and observability. Worker functions and the main supervisor run are decorated so route execution can be traced when a LangSmith API key is present. This makes it possible to inspect route selection, worker behavior, and run-level execution details during debugging and evaluation.
+AI Stack
+
+Claude
+
+Claude powers live generation in this supervisor. The copy and campaign_strategy routes call Claude through the Anthropic SDK, which sends a structured system prompt and user prompt, requests JSON output, and validates the response before it reaches the frontend. When Claude is unavailable, both routes fall back to deterministic structured frameworks rather than failing silently, so the operator always receives a usable result.
 
 LangChain
-LangChain is part of the project stack and supports the broader architecture around model-driven business workflows. In this supervisor, the core live model path currently calls Anthropic directly for strict JSON handling, but the project environment includes LangChain so the system can be extended into richer prompt chains, reusable model abstractions, and tool-driven workflows as the product evolves.
+
+LangChain provides the AI application framework layer. It supports the model workflow architecture and makes it straightforward to extend the supervisor with reusable prompt abstractions, model wrappers, and tool integrations as the product grows.
 
 LangGraph
-LangGraph is included as part of the orchestration stack for graph-based agent design and future expansion into more explicit stateful workflow routing. The current supervisor already behaves like a routed graph at the product level: intake, decisioning, specialist worker dispatch, review shaping, and frontend delivery. LangGraph support in the environment makes it straightforward to evolve this deterministic supervisor into a deeper state-machine or graph-executed multi-agent workflow.
+
+LangGraph provides the graph orchestration layer. The supervisor already follows a graph-shaped execution model: request intake, route decision, worker dispatch, review shaping, and frontend delivery. LangGraph gives that model an explicit stateful foundation for evolving into deeper branching, guarded transitions, and multi-agent graph workflows.
+
+LangSmith
+
+LangSmith provides tracing and observability across the full run. Supervisor execution and worker functions are traced so route selection, worker behavior, and run-level decisions can be inspected, evaluated, and debugged.
 
 Backend Workflow
 
 Step 1 — Request intake
-Input: Business request plus optional business context
-Receives a request through the API and accepts structured context such as company, industry, offer, target audience, tool stack, and workflow goal. Prepares the run state that the supervisor uses across the route selection and worker execution flow.
+
+Input:
+Business request plus optional business context
+
+Receives a request through the API alongside structured context such as company name, industry, offer, target audience, tool stack, and workflow goal. Prepares the run state used across the entire supervisor flow.
 
 Step 2 — Deterministic route classification
-Intermediate: Route decision object
-Evaluates the request against a route table and classifies it into one of seven routes: crm_ops, reporting, copy, campaign_strategy, research, clarify, or reject. Assigns confidence, risk level, missing inputs, and approval requirements before worker execution begins.
+
+Intermediate:
+Route decision object
+
+Evaluates the request against a route table and classifies it into one of seven routes:
+crm_ops
+reporting
+copy
+campaign_strategy
+research
+clarify
+reject
+
+Assigns confidence, risk level, missing inputs, and approval requirements before any worker runs.
 
 Step 3 — Specialist worker execution
-Processing: Route-specific structured generation
-Dispatches the request to the correct worker. CRM ops returns workflow blueprints and QA checklists. Reporting returns diagnostic frameworks and KPI investigation paths. Copy and campaign strategy attempt live Claude generation through Anthropic and fall back to structured frameworks when needed. Research returns positioning and market-analysis briefs. Clarify and reject keep the system safe when a request is ambiguous or operationally risky.
+
+Processing:
+Route-specific structured generation
+
+Dispatches the request to the correct worker.
+
+CRM ops returns workflow blueprints and QA checklists.
+
+Reporting returns diagnostic frameworks and KPI investigation paths.
+
+Copy and campaign strategy route through Claude via Anthropic and fall back to structured frameworks when the model is unavailable.
+
+Research returns positioning and market-analysis briefs.
+
+Clarify and reject keep the system safe when a request is ambiguous or operationally risky.
 
 Step 4 — Final review shaping
-Processing: Standardized response assembly
+
+Processing:
+Standardized response assembly
+
 Wraps the worker output into a consistent response shape with decision metadata, route used, next step guidance, and a deliverable payload. Keeps frontend rendering predictable regardless of which route was selected.
 
 Step 5 — Frontend delivery
-Output: Supervised agent result
+
+Output:
+Supervised agent result
+
 Displays the routing decision, confidence, risk status, approval state, structured output, and raw JSON trace inside a React operator console. Supports review, debugging, and presentation from a single UI.
 
 System Routes
 
-RoutePurpose
-crm_opsCRM workflow blueprints, routing logic, lifecycle-stage handling, SLA checks, notifications, and implementation planning
-reportingKPI analysis, funnel diagnostics, attribution review, performance troubleshooting, and investigation frameworks
-copyStructured copy outputs such as nurture sequences, outreach, landing page copy, and conversion messaging
-campaign_strategyGo-to-market planning, ICP definition, channel strategy, positioning, campaign sequencing, and success metrics
-researchMarket landscape, competitor framing, persona research, positioning analysis, and open-question briefs
-clarifyClarifying questions when the request is too vague to route safely
-rejectSafe refusal for risky direct execution requests such as live CRM changes or immediate sends
+crm_ops
+Purpose: CRM workflow blueprints, routing logic, lifecycle-stage handling, SLA checks, notifications, and implementation planning
+
+reporting
+Purpose: KPI analysis, funnel diagnostics, attribution review, performance troubleshooting, and investigation frameworks
+
+copy
+Purpose: Claude-powered structured copy generation with deterministic fallback support
+
+campaign_strategy
+Purpose: Claude-powered campaign planning with deterministic fallback support
+
+research
+Purpose: Market landscape, competitor framing, persona research, positioning analysis, and open-question briefs
+
+clarify
+Purpose: Clarifying questions when the request is too vague to route safely
+
+reject
+Purpose: Safe refusal for risky direct execution requests such as live CRM changes or immediate sends
 
 Frontend Experience
 
 The frontend provides a business-context form, request intake, scenario shortcuts, execution graph, route decision display, structured route output, and raw JSON inspection.
+
 The interface is designed for supervised operations work, not autonomous live execution.
-High-risk routes can surface approval requirements before operational follow-through.
-Fallback behavior for copy and campaign strategy is preserved so the product remains usable even when the live model is unavailable.
+
+High-risk routes surface approval requirements before operational follow-through.
+
+Fallback behavior on Claude-powered routes is preserved so the product remains usable even when the live model is unavailable.
 
 Tech Stack
 
-LayerTechnology
-LanguagePython 3.11
-Backend FrameworkFastAPI
-FrontendReact with TypeScript
-ServerUvicorn
-AI ModelClaude via Anthropic
-TracingLangSmith
-AI FrameworkLangChain
-Agent Graph LayerLangGraph
-DeploymentGoogle Cloud Run for backend, static frontend deployment for UI
-ArchitectureDeterministic router plus specialist workers
+Primary AI model:
+Claude
+
+AI provider:
+Anthropic
+
+AI application framework:
+LangChain
+
+Graph orchestration layer:
+LangGraph
+
+Tracing and observability:
+LangSmith
+
+Language:
+Python 3.11
+
+Backend framework:
+FastAPI
+
+Frontend:
+React with TypeScript
+
+Server:
+Uvicorn
+
+Deployment:
+Google Cloud Run
 
 Local Development
 
@@ -105,77 +192,114 @@ npm start
 
 Local URLs
 
-Frontend
+Frontend:
 http://localhost:3000
 
-Backend health
+Backend health:
 http://127.0.0.1:8000/health
 
-Backend docs
+Backend docs:
 http://127.0.0.1:8000/docs
 
 Environment Variables
 
-VariableRequiredPurpose
-ANTHROPIC_API_KEYOptional for fallback mode, required for live Claude generationAnthropic API access for copy and campaign routes
-ANTHROPIC_MODELRecommendedClaude model selection for copy and campaign routes
-ANTHROPIC_TIMEOUT_SECONDSOptionalRequest timeout control for Anthropic calls
-ANTHROPIC_MAX_RETRIESOptionalRetry count for Anthropic calls
-LANGSMITH_API_KEYOptionalTracing and observability for route runs
+ANTHROPIC_API_KEY
+Required for live Claude generation
+Used for Anthropic API access for copy and campaign routes
+
+ANTHROPIC_MODEL
+Recommended
+Used for Claude model selection for copy and campaign routes
+
+ANTHROPIC_TIMEOUT_SECONDS
+Optional
+Used for request timeout control for Anthropic calls
+
+ANTHROPIC_MAX_RETRIES
+Optional
+Used for retry count for Anthropic calls
+
+LANGSMITH_API_KEY
+Optional
+Used for tracing and observability for route runs
 
 Example Request Types
 
 CRM Ops
-Build a HubSpot workflow for MQL to SQL handoff using round robin assignment with a fallback owner and 2-hour SLA check.
+
+Build a HubSpot workflow for MQL to SQL handoff using round robin assignment with a fallback owner and a 2-hour SLA check.
 
 Reporting
+
 Analyze why booked calls dropped from paid search leads last month.
 
 Copy
+
 Write a 5-email nurture sequence for inbound leads from paid search who did not book a call.
 
 Campaign Strategy
+
 Create a go-to-market campaign plan for a new SMB offer targeting roofing contractors.
 
 Research
+
 Research how the top 3 HubSpot competitors position their CRM automation for SMBs.
 
 Deployment
 
-Recommended production deployment pattern:
+Backend and Frontend
 
-Backend
-Deploy app-backend to Google Cloud Run.
+Deploy the FastAPI backend to Google Cloud Run and serve the built React frontend from the same container.
 
-Frontend
-Deploy app-frontend as a static frontend and point its API base URL to the Cloud Run backend URL.
+Production URL:
+https://marketing-ops-agent-1075083906427.us-central1.run.app
 
-This keeps the backend scalable and the frontend simple to update.
+Health Check:
+https://marketing-ops-agent-1075083906427.us-central1.run.app/health
+
+Docs:
+https://marketing-ops-agent-1075083906427.us-central1.run.app/docs
 
 GitHub Workflow
 
-git add .
-git commit -m "Finish MVP for marketing ops agent supervisor"
+git add README.md
+git commit -m "Update README with production Cloud Run URL"
 git push origin main
-
-If the repository is brand new, create the empty GitHub repository first, then connect the local repo as origin and push.
 
 Why This Project Exists
 
 Marketing and ops teams often need structured planning, diagnostics, and execution guidance, but most AI interfaces collapse everything into one generic answer.
+
 This project separates request types into specialist paths, preserves a consistent response contract, and keeps risky operations supervised rather than automatic.
+
 It is designed to function as an operator console for AI-assisted marketing operations work.
 
 Full Agent Ecosystem
 
-AgentRepository
-Website Audit Agentgithub.com/HansStewart/website-audit-agent
-AI Content Pipelinegithub.com/HansStewart/ai-content-pipeline
-Voice-to-CRM Agentgithub.com/HansStewart/voice-to-crm
-Pipeline Intelligence Agentgithub.com/HansStewart/pipeline-intelligence-agent
-CRM Automation Agentgithub.com/HansStewart/crm-agent
-AI Data Agentgithub.com/HansStewart/ai-data-agent
-RAG Document Intelligencegithub.com/HansStewart/rag-agent
-AI Architecturehansstewart.github.io/ai-architecture
+Website Audit Agent
+github.com/HansStewart/website-audit-agent
 
-Hans Stewart  ·  Marketing Automation Engineer  ·  hansstewart.dev
+AI Content Pipeline
+github.com/HansStewart/ai-content-pipeline
+
+Voice-to-CRM Agent
+github.com/HansStewart/voice-to-crm
+
+Pipeline Intelligence Agent
+github.com/HansStewart/pipeline-intelligence-agent
+
+CRM Automation Agent
+github.com/HansStewart/crm-agent
+
+AI Data Agent
+github.com/HansStewart/ai-data-agent
+
+RAG Document Intelligence
+github.com/HansStewart/rag-agent
+
+AI Architecture
+hansstewart.github.io/ai-architecture
+
+Hans Stewart
+Marketing Automation Engineer
+hansstewart.dev
